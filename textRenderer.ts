@@ -139,23 +139,26 @@ export class TextRenderer {
       let match;
 
       while ((match = regex.exec(line)) !== null) {
-        // Add text before the match
+        // Add text before the match (trim trailing whitespace to avoid extra spaces)
         if (match.index > currentIndex) {
-          const beforeText = line.substring(currentIndex, match.index);
-          if (beforeText.trim()) {
+          const beforeText = line.substring(currentIndex, match.index).trimEnd();
+          if (beforeText) {
             segments.push({ text: beforeText, bold: false, color: defaultColor });
           }
         }
 
-        // Add the matched text (bold, colored)
-        segments.push({ text: match[1], bold: true, color: '#8D3F0B' });
+        // Add the matched text (bold, colored) - trim whitespace from inside brackets
+        const matchedText = match[1].trim();
+        if (matchedText) {
+          segments.push({ text: matchedText, bold: true, color: '#8D3F0B' });
+        }
         currentIndex = match.index + match[0].length;
       }
 
-      // Add remaining text
+      // Add remaining text (trim leading whitespace to avoid extra spaces)
       if (currentIndex < line.length) {
-        const remainingText = line.substring(currentIndex);
-        if (remainingText.trim()) {
+        const remainingText = line.substring(currentIndex).trimStart();
+        if (remainingText) {
           segments.push({ text: remainingText, bold: false, color: defaultColor });
         }
       }
@@ -202,19 +205,41 @@ export class TextRenderer {
         const spaceWidth = font.getAdvanceWidth(' ', fontSize);
 
         for (const word of words) {
-          const wordWidth = font.getAdvanceWidth(word, fontSize);
-          const totalWidth = currentLineWidth + (currentLine.length > 0 ? spaceWidth : 0) + wordWidth;
+          // Check if this word is punctuation-only and should be attached to previous word
+          const isPunctuationOnly = /^[.,!?;:]+$/.test(word);
+          const shouldAttachToPrevious = isPunctuationOnly && currentLine.length > 0;
 
-          // Check if word fits on current line
-          if (totalWidth > maxWidth && currentLine.length > 0) {
-            // Finish current line and start new one
-            lines.push({ words: [...currentLine], width: currentLineWidth });
-            currentLine = [];
-            currentLineWidth = 0;
+          if (shouldAttachToPrevious) {
+            // Attach punctuation to the previous word (no space)
+            const prevWord = currentLine[currentLine.length - 1];
+            const prevWordWidth = prevWord.width;
+            const combinedText = prevWord.text + word;
+            const combinedWidth = font.getAdvanceWidth(combinedText, fontSize);
+            
+            // Update previous word
+            prevWord.text = combinedText;
+            prevWord.width = combinedWidth;
+            
+            // Adjust line width: remove old width, add new width (no space added)
+            currentLineWidth = currentLineWidth - prevWordWidth + combinedWidth;
+          } else {
+            // Normal word processing
+            const wordWidth = font.getAdvanceWidth(word, fontSize);
+            // For punctuation-only words, don't count space in width calculation
+            const spaceToAdd = (currentLine.length > 0 && !isPunctuationOnly) ? spaceWidth : 0;
+            const totalWidth = currentLineWidth + spaceToAdd + wordWidth;
+
+            // Check if word fits on current line
+            if (totalWidth > maxWidth && currentLine.length > 0) {
+              // Finish current line and start new one
+              lines.push({ words: [...currentLine], width: currentLineWidth });
+              currentLine = [];
+              currentLineWidth = 0;
+            }
+
+            currentLine.push({ text: word, width: wordWidth, color: segment.color });
+            currentLineWidth += spaceToAdd + wordWidth;
           }
-
-          currentLine.push({ text: word, width: wordWidth, color: segment.color });
-          currentLineWidth += (currentLine.length > 1 ? spaceWidth : 0) + wordWidth;
         }
       }
 
@@ -248,8 +273,9 @@ export class TextRenderer {
         const font = this.boldFont!;
         const spaceWidth = font.getAdvanceWidth(' ', fontSize);
 
-        // Add space before word (except first word)
-        if (i > 0) {
+        // Add space before word (except first word, and don't add space before punctuation-only words)
+        const isPunctuationOnly = /^[.,!?;:]+$/.test(wordInfo.text);
+        if (i > 0 && !isPunctuationOnly) {
           currentX += spaceWidth;
         }
 
