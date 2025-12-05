@@ -28,6 +28,37 @@ export class CardRenderer {
   }
 
   /**
+   * Convert SVG content to a data URI for use in <image> tag
+   * @param svgContent - Complete SVG string
+   * @param useBase64 - Whether to use base64 encoding (default: false, uses URL encoding)
+   * @returns Data URI string that can be used in <image href="...">
+   */
+  static svgToDataUri(svgContent: string, useBase64: boolean = false): string {
+    const svg = svgContent.trim();
+    
+    if (useBase64) {
+      // Base64 encoding (more compact, but requires base64 encoding)
+      const base64 = Buffer.from(svg, 'utf-8').toString('base64');
+      return `data:image/svg+xml;base64,${base64}`;
+    } else {
+      // URL encoding (more readable, works directly)
+      const encoded = encodeURIComponent(svg);
+      return `data:image/svg+xml;charset=utf-8,${encoded}`;
+    }
+  }
+
+  /**
+   * Render card as data URI for embedding in <image> tag
+   * @param card - Card data to render
+   * @param useBase64 - Whether to use base64 encoding (default: false)
+   * @returns Data URI string ready for <image href="...">
+   */
+  renderCardAsDataUri(card: CardData, useBase64: boolean = false): string {
+    const svg = this.renderCard(card);
+    return CardRenderer.svgToDataUri(svg, useBase64);
+  }
+
+  /**
    * Render a complete card as SVG
    */
   renderCard(card: CardData): string {
@@ -205,15 +236,8 @@ export class CardRenderer {
     const canvasWidth = config.canvas.width;
     const canvasHeight = config.canvas.height;
 
-    // Build SVG
-    const svg = `
-<svg width="${canvasWidth}" height="${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <style>
-      .card-frame { filter: ${config.styling.cardFrameShadow}; }
-    </style>
-  </defs>
-  
+    // Build SVG content (without defs - will be added conditionally)
+    const svgContent = `
   <!-- Card Frame -->
   <image href="${frameImagePath}" x="${cardPositionX}" y="${cardPositionY}" width="${cardWidth}" height="${cardHeight}" class="card-frame"/>
   
@@ -282,9 +306,21 @@ export class CardRenderer {
   <g id="card-description">
     ${this.textRenderer.renderDescription(card.description, config.descriptionText.fontSize, descriptionTextSvgX, descriptionTextSvgY, config.descriptionText.maxWidth, config.descriptionText.fillColor, config.descriptionText.lineHeight)}
   </g>
-</svg>`.trim();
+`.trim();
 
-    return svg;
+    // Build defs section
+    const defsSection = `
+  <defs>
+    <style>
+      .card-frame { filter: ${config.styling.cardFrameShadow}; }
+    </style>
+  </defs>`;
+
+    // Return complete SVG with root tag
+    return `<svg width="${canvasWidth}" height="${canvasHeight}" xmlns="http://www.w3.org/2000/svg">
+${defsSection}
+${svgContent}
+</svg>`.trim();
   }
 
   /**

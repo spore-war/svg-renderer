@@ -36,7 +36,7 @@ async function main() {
     const fontsPath = path.join(assetsPath, 'font');
     const wasmPath = path.join(assetsPath, 'engine', 'wasm.bin');
     const engineJsPath = path.join(assetsPath, 'engine', 'index.js');
-    const projectRoot = path.resolve(__dirname, '../..');
+    const projectRoot = path.resolve(__dirname, '.');
     const outputPath = process.env.output || path.join(projectRoot, 'build', 'cards');
 
     console.log(`Rendering card with DNA: ${dna}`);

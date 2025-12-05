@@ -118,10 +118,10 @@ app.get('/render', async (req, res) => {
       });
     }
 
-    // Render SVG
+    // Render SVG (always returns complete SVG with root tag)
     const svg = cardRenderer!.renderCard(cardData);
 
-    // Set headers for SVG response
+    // Return SVG directly
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     res.setHeader('X-Card-Name', cardData.name);
@@ -131,6 +131,67 @@ app.get('/render', async (req, res) => {
     res.send(svg);
   } catch (error: any) {
     console.error('Error rendering card:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: error.message || 'An unexpected error occurred',
+    });
+  }
+});
+
+/**
+ * GET /embed?dna=<DNA_HEX>[&base64=true]
+ * Returns SVG card as data URI for embedding in <image> tag
+ */
+app.get('/embed', async (req, res) => {
+  try {
+    // Ensure renderer is initialized
+    await initialize();
+
+    const dna = req.query.dna as string;
+
+    if (!dna) {
+      return res.status(400).json({
+        error: 'Missing DNA parameter',
+        message: 'Please provide a DNA parameter in the query string',
+        example: '/embed?dna=cace27999bb78e7a1c00',
+      });
+    }
+
+    // Validate DNA format (hexadecimal string)
+    if (!dna.match(/^[0-9a-fA-F\s]+$/)) {
+      return res.status(400).json({
+        error: 'Invalid DNA format',
+        message: 'DNA must be a hexadecimal string',
+        example: 'cace27999bb78e7a1c00',
+      });
+    }
+
+    // Get card data by DNA
+    const cardData = getCardByDna(engine, dna);
+
+    if (!cardData) {
+      return res.status(404).json({
+        error: 'Card not found',
+        message: `No card found with DNA "${dna}"`,
+        example: 'cace27999bb78e7a1c00',
+      });
+    }
+
+    // Render SVG (always returns complete SVG with root tag)
+    const svg = cardRenderer!.renderCard(cardData);
+
+    // Convert to data URI (for embedding in <image> tag)
+    const useBase64 = req.query.base64 === 'true' || req.query.base64 === '1';
+    const dataUri = CardRenderer.svgToDataUri(svg, useBase64);
+    
+    // Return data URI directly as plain text
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('X-Card-Name', cardData.name);
+    res.setHeader('X-Card-Category', cardData.category.toString());
+    res.send(dataUri);
+  } catch (error: any) {
+    console.error('Error embedding card:', error);
     res.status(500).json({
       error: 'Internal server error',
       message: error.message || 'An unexpected error occurred',
@@ -173,6 +234,32 @@ app.get('/', (req, res) => {
         },
         example: '/render?dna=cace27999bb78e7a1c00',
       },
+      embed: {
+        method: 'GET',
+        path: '/embed',
+        description: 'Get card SVG as data URI string for embedding in <image> tag. Returns plain text (data URI string).',
+        responseType: 'text/plain',
+        parameters: {
+          dna: {
+            type: 'string',
+            required: true,
+            description: 'Card DNA in hexadecimal format',
+            example: 'cace27999bb78e7a1c00',
+          },
+          base64: {
+            type: 'boolean',
+            required: false,
+            default: false,
+            description: 'Use base64 encoding (default: URL encoding)',
+            example: '/embed?dna=cace27999bb78e7a1c00&base64=true',
+          },
+        },
+        examples: [
+          '/embed?dna=cace27999bb78e7a1c00',
+          '/embed?dna=cace27999bb78e7a1c00&base64=true',
+        ],
+        exampleResponse: 'data:image/svg+xml;charset=utf-8,%3Csvg%20...',
+      },
       health: {
         method: 'GET',
         path: '/health',
@@ -185,6 +272,7 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`\n🚀 Card renderer server running on http://localhost:${PORT}`);
-  console.log(`   Example: http://localhost:${PORT}/render?dna=cace27999bb78e7a1c00`);
+  console.log(`   Render:  http://localhost:${PORT}/render?dna=cace27999bb78e7a1c00`);
+  console.log(`   Embed:   http://localhost:${PORT}/embed?dna=cace27999bb78e7a1c00`);
   console.log(`   Health:  http://localhost:${PORT}/health\n`);
 });
