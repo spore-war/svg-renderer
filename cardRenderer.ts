@@ -6,6 +6,7 @@ import {
   PositionWithParent,
   ParentKey,
 } from './cardLayoutConfig';
+import { AssetCache } from './assetCache';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -14,17 +15,20 @@ export class CardRenderer {
   private assetsPath: string;
   private useBase64: boolean;
   private layoutConfig: CardLayoutConfig;
+  private assetCache: AssetCache | null;
 
   constructor(
     textRenderer: TextRenderer,
     assetsPath: string,
     useBase64: boolean = false,
-    layoutConfig: CardLayoutConfig = defaultCardLayoutConfig
+    layoutConfig: CardLayoutConfig = defaultCardLayoutConfig,
+    assetCache: AssetCache | null = null
   ) {
     this.textRenderer = textRenderer;
     this.assetsPath = assetsPath;
     this.useBase64 = useBase64;
     this.layoutConfig = layoutConfig;
+    this.assetCache = assetCache;
   }
 
   /**
@@ -325,19 +329,26 @@ ${svgContent}
 
   /**
    * Get asset path or base64 data URI
+   * Uses asset cache if available, otherwise falls back to disk I/O
    */
   private getAssetPath(relativePath: string): string {
+    // If asset cache is available, use it (no I/O overhead)
+    if (this.assetCache) {
+      return this.assetCache.get(relativePath);
+    }
+
+    // Fallback to disk I/O (for CLI usage or when cache is not available)
     if (this.useBase64) {
       return this.getBase64DataUri(relativePath);
     }
     // Return relative path from build output to assets
     // Adjust this based on where your SVG will be served from
     // Note: When using local assets, this path may need adjustment
-    return `../../assets/resources/${relativePath}`;
+    return `assets/${relativePath}`;
   }
 
   /**
-   * Convert PNG file to base64 data URI
+   * Convert PNG file to base64 data URI (fallback when cache is not available)
    */
   private getBase64DataUri(relativePath: string): string {
     const fullPath = path.join(this.assetsPath, relativePath);

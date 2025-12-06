@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { TextRenderer } from './textRenderer';
 import { CardRenderer } from './cardRenderer';
 import { loadEngine, getCardByDna } from './engineLoader';
+import { AssetCache } from './assetCache';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,6 +22,7 @@ const engineJsPath = path.join(assetsPath, 'engine', 'index.js');
 let textRenderer: TextRenderer | null = null;
 let engine: any = null;
 let cardRenderer: CardRenderer | null = null;
+let assetCache: AssetCache | null = null;
 let isInitializing = false;
 let initPromise: Promise<void> | null = null;
 
@@ -30,7 +32,7 @@ let initPromise: Promise<void> | null = null;
  */
 async function initialize(): Promise<void> {
   // If already initialized, return immediately
-  if (textRenderer && engine && cardRenderer) {
+  if (textRenderer && engine && cardRenderer && assetCache) {
     return;
   }
 
@@ -54,8 +56,13 @@ async function initialize(): Promise<void> {
       console.log('Loading WASM engine...');
       engine = await loadEngine(wasmPath, engineJsPath);
 
-      // Create card renderer (use base64 for standalone SVGs)
-      cardRenderer = new CardRenderer(textRenderer, assetsPath, true);
+      // Pre-load all assets into memory cache (eliminates I/O overhead)
+      console.log('Pre-loading assets into memory cache...');
+      assetCache = new AssetCache(assetsPath);
+      await assetCache.loadAll();
+
+      // Create card renderer with asset cache (use base64 for standalone SVGs)
+      cardRenderer = new CardRenderer(textRenderer, assetsPath, true, undefined, assetCache);
 
       console.log('✓ Renderer initialized successfully!');
     } catch (error: any) {
@@ -64,6 +71,7 @@ async function initialize(): Promise<void> {
       textRenderer = null;
       engine = null;
       cardRenderer = null;
+      assetCache = null;
       throw error;
     } finally {
       isInitializing = false;
@@ -204,11 +212,20 @@ app.get('/embed', async (req, res) => {
  * Health check endpoint
  */
 app.get('/health', (req, res) => {
-  const isReady = textRenderer !== null && engine !== null && cardRenderer !== null;
-  res.json({
+  const isReady = textRenderer !== null && engine !== null && cardRenderer !== null && assetCache !== null;
+  const response: any = {
     status: isReady ? 'ready' : 'initializing',
     timestamp: new Date().toISOString(),
-  });
+  };
+
+  if (isReady && assetCache) {
+    const stats = assetCache.getStats();
+    response.cache = {
+      assetsLoaded: stats.size,
+    };
+  }
+
+  res.json(response);
 });
 
 /**
