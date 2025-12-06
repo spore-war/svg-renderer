@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
 // Paths - using local assets in svg-renderer directory
 const assetsPath = path.join(__dirname, 'assets');
@@ -287,8 +287,8 @@ app.get('/', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`\n🚀 Card renderer server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n🚀 Card renderer server running on http://0.0.0.0:${PORT}`);
   console.log(`   Render:  http://localhost:${PORT}/render?dna=cace27999bb78e7a1c00`);
   console.log(`   Embed:   http://localhost:${PORT}/embed?dna=cace27999bb78e7a1c00`);
   console.log(`   Health:  http://localhost:${PORT}/health\n`);
