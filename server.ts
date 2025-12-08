@@ -17,6 +17,7 @@ const assetsPath = path.join(__dirname, 'assets');
 const fontsPath = path.join(assetsPath, 'font');
 const wasmPath = path.join(assetsPath, 'engine', 'wasm.bin');
 const engineJsPath = path.join(assetsPath, 'engine', 'index.js');
+const iconPath = path.join(assetsPath, 'icon');
 
 // Initialize renderer components (load once, reuse for all requests)
 let textRenderer: TextRenderer | null = null;
@@ -229,6 +230,44 @@ app.get('/health', (req, res) => {
 });
 
 /**
+ * GET /icon/blindbox
+ * Returns the blindbox icon image
+ */
+app.get('/icon/blindbox', (req, res) => {
+  const filePath = path.join(iconPath, 'blindbox.png');
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving blindbox icon:', err);
+      res.status(404).json({
+        error: 'Icon not found',
+        message: 'blindbox.png not found',
+      });
+    }
+  });
+});
+
+/**
+ * GET /icon/logo
+ * Returns the logo image
+ */
+app.get('/icon/logo', (req, res) => {
+  const filePath = path.join(iconPath, 'logo.png');
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 1 day
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving logo icon:', err);
+      res.status(404).json({
+        error: 'Icon not found',
+        message: 'logo.png not found',
+      });
+    }
+  });
+});
+
+/**
  * GET /
  * API information endpoint
  */
@@ -282,6 +321,18 @@ app.get('/', (req, res) => {
         path: '/health',
         description: 'Check server health status',
       },
+      iconBlindbox: {
+        method: 'GET',
+        path: '/icon/blindbox',
+        description: 'Get the blindbox icon image',
+        responseType: 'image/png',
+      },
+      iconLogo: {
+        method: 'GET',
+        path: '/icon/logo',
+        description: 'Get the logo image',
+        responseType: 'image/png',
+      },
     },
   });
 });
@@ -291,5 +342,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n🚀 Card renderer server running on http://0.0.0.0:${PORT}`);
   console.log(`   Render:  http://localhost:${PORT}/render?dna=cace27999bb78e7a1c00`);
   console.log(`   Embed:   http://localhost:${PORT}/embed?dna=cace27999bb78e7a1c00`);
-  console.log(`   Health:  http://localhost:${PORT}/health\n`);
+  console.log(`   Health:  http://localhost:${PORT}/health`);
+  console.log(`   Icons:   http://localhost:${PORT}/icon/blindbox | /icon/logo\n`);
 });
