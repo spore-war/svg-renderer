@@ -12,6 +12,20 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
+// Enable CORS for all origins
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
+
 // Paths - using local assets in svg-renderer directory
 const assetsPath = path.join(__dirname, 'assets');
 const fontsPath = path.join(assetsPath, 'font');
