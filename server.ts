@@ -12,15 +12,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-// Enable CORS for all origins
+// Enable CORS for all origins and all methods
 app.use((req, res, next) => {
+  // Set CORS headers for all requests
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Expose-Headers', 'X-Card-Name, X-Card-Category');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.status(200).end();
   }
   
   next();
