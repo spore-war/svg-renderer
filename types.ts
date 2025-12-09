@@ -26,7 +26,7 @@ export const CARD_CATEGORY_FRAMES: Record<number, { frame: string; costFrame: st
   2: { frame: 'frameBlue', costFrame: 'costFrameBlue' }, // Shield
   3: { frame: 'frameGreen', costFrame: 'costFrameGreen' }, // Heal
   4: { frame: 'frameGray', costFrame: 'costFrameGray' }, // Trick
-  5: { frame: 'frameGray', costFrame: 'costFrameGrap' }, // Trap
+  5: { frame: 'frameGray', costFrame: 'costFrameGray' }, // Trap
   6: { frame: 'framePink', costFrame: 'costFramePink' }, // Sorcery
   7: { frame: 'frameBlack', costFrame: 'costFrameBlack' }, // Equipment
 };
