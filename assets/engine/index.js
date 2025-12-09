@@ -560,8 +560,8 @@ var CardName = Object.freeze({
   "75": "IronWall",
   CasualTraining: 76,
   "76": "CasualTraining",
-  EmergencyBarrier: 77,
-  "77": "EmergencyBarrier",
+  ForceBarrier: 77,
+  "77": "ForceBarrier",
   Rampart: 78,
   "78": "Rampart",
   BlockDeadlock: 79,
@@ -5158,8 +5158,8 @@ function __wbg_get_imports() {
     const ret = false;
     return ret;
   };
-  imports.wbg.__wbindgen_closure_wrapper4175 = function(arg0, arg1, arg2) {
-    const ret = makeMutClosure(arg0, arg1, 155, __wbg_adapter_50);
+  imports.wbg.__wbindgen_closure_wrapper4172 = function(arg0, arg1, arg2) {
+    const ret = makeMutClosure(arg0, arg1, 152, __wbg_adapter_50);
     return addHeapObject(ret);
   };
   imports.wbg.__wbindgen_debug_string = function(arg0, arg1) {
