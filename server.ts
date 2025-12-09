@@ -1,6 +1,7 @@
 import express from 'express';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
+import sharp from 'sharp';
 import { TextRenderer } from './textRenderer';
 import { CardRenderer } from './cardRenderer';
 import { loadEngine, getCardByDna } from './engineLoader';
@@ -107,7 +108,7 @@ initialize().catch(error => {
 
 /**
  * GET /render?dna=<DNA_HEX>
- * Returns SVG image of the card with the given DNA
+ * Returns PNG image of the card with the given DNA (converted from SVG)
  */
 app.get('/render', async (req, res) => {
   try {
@@ -147,14 +148,25 @@ app.get('/render', async (req, res) => {
     // Render SVG (always returns complete SVG with root tag)
     const svg = cardRenderer!.renderCard(cardData);
 
-    // Return SVG directly
-    res.setHeader('Content-Type', 'image/svg+xml');
+    // Convert SVG to PNG using sharp
+    // Sharp will use the SVG's width/height attributes (314x442)
+    // Using 144 DPI for good quality without performance burden
+    const pngBuffer = await sharp(Buffer.from(svg), {
+      density: 144 // Balanced quality for web use (144 DPI = 1.5x standard 96 DPI)
+    })
+      .png({
+        compressionLevel: 6 // Good compression balance (0-9, 6 is optimal for size/speed)
+      })
+      .toBuffer();
+
+    // Return PNG image
+    res.setHeader('Content-Type', 'image/png');
     res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     res.setHeader('X-Card-Name', cardData.name);
     res.setHeader('X-Card-Category', cardData.category.toString());
 
-    // Send SVG
-    res.send(svg);
+    // Send PNG
+    res.send(pngBuffer);
   } catch (error: any) {
     console.error('Error rendering card:', error);
     res.status(500).json({
@@ -296,7 +308,8 @@ app.get('/', (req, res) => {
       render: {
         method: 'GET',
         path: '/render',
-        description: 'Render a card as SVG by DNA',
+        description: 'Render a card as PNG image by DNA (converted from SVG)',
+        responseType: 'image/png',
         parameters: {
           dna: {
             type: 'string',
